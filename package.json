@@ -1,0 +1,15 @@
+{
+  "name": "telegram-feedback-bot",
+  "version": "1.0.0",
+  "description": "Telegram Feedback Bot for Vercel Serverless",
+  "main": "api/webhook.js",
+  "scripts": {
+    "start": "node api/webhook.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
