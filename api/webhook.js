@@ -2,26 +2,27 @@ const { Telegraf } = require('telegraf');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const ADMIN_1_ID = process.env.ADMIN_1_ID; // Main Admin (Can Reply)
-const ADMIN_2_ID = process.env.ADMIN_2_ID; // Observer Admin (Read Only)
+const ADMIN_1_ID = process.env.ADMIN_1_ID; // Main Admin
+const ADMIN_2_ID = process.env.ADMIN_2_ID; // Observer Admin
 
-// HTML uchun maxsus belgilarni tozalash (escaping)
+// HTML uchun xavfsiz tozalash funksiyasi
 function escapeHTML(str) {
   if (!str) return '';
   return str
+    .toString()
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
 
-// Helper function to extract user ID from custom tag or message text
+// User ID'ni ajratib olish funksiyasi
 function extractUserId(text) {
   if (!text) return null;
   const match = text.match(/#UID_(\d+)/);
   return match ? match[1] : null;
 }
 
-// User Start Command
+// Start komandasi
 bot.start((ctx) => {
   const senderId = ctx.from.id.toString();
   if (senderId === ADMIN_1_ID || senderId === ADMIN_2_ID) {
@@ -30,15 +31,13 @@ bot.start((ctx) => {
   ctx.reply("Assalomu alaykum! Savol yoki murojaatingizni yozib qoldiring. Tez orada javob beramiz.");
 });
 
-// Main Message Handler
+// Asosiy xabarlar ishlovchisi
 bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], async (ctx) => {
   const senderId = ctx.from.id.toString();
   const userName = escapeHTML(ctx.from.first_name || 'Foydalanuvchi');
   const usernameTag = ctx.from.username ? `@${escapeHTML(ctx.from.username)}` : 'Mavjud emas';
 
-  // ----------------------------------------------------
-  // 1. ADMIN 1 RESPONDING VIA REPLY
-  // ----------------------------------------------------
+  // 1. ADMIN 1 JAVOB BERISHI (REPLY)
   if (senderId === ADMIN_1_ID) {
     if (!ctx.message.reply_to_message) {
       return ctx.reply("⚠️ Foydalanuvchiga javob berish uchun kelgan xabarga 'Reply' qiling.");
@@ -70,9 +69,7 @@ bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], asyn
     }
   }
 
-  // ----------------------------------------------------
-  // 2. ADMIN 2 TRYING TO REPLY (BLOCKED)
-  // ----------------------------------------------------
+  // 2. ADMIN 2 JAVOB BERISHGA URINSHI (BLOKLANADI)
   if (senderId === ADMIN_2_ID) {
     if (ctx.message.reply_to_message) {
       return ctx.reply("⚠️ Sizda faqat kuzatish huquqi bor. Javob yubora olmaysiz!");
@@ -80,21 +77,21 @@ bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], asyn
     return ctx.reply("ℹ️ Siz kuzatuvchi adminsiz.");
   }
 
-  // ----------------------------------------------------
-  // 3. REGULAR USER SENDING MESSAGE TO ADMINS
-  // ----------------------------------------------------
-  const userText = ctx.message.text ? escapeHTML(ctx.message.text) : '';
-  const userCaption = ctx.message.caption ? escapeHTML(ctx.message.caption) : '';
-
+  // 3. ODDIY FOYDALANUVCHIDAN KELGAN XABARNI ADMINLARGA YUBORISH
   const captionHeader = `📩 <b>Yangi Murojaat!</b>\n👤 <b>Ism:</b> ${userName}\n🌐 <b>Username:</b> ${usernameTag}\n🆔 <b>ID:</b> <code>#UID_${senderId}</code>\n\n`;
   const observerHeader = `👁 <b>[KUZATUV REJIMIDAGI XABAR]</b>\n👤 <b>Ism:</b> ${userName}\n🌐 <b>Username:</b> ${usernameTag}\n🆔 <b>ID:</b> <code>#UID_${senderId}</code>\n\n`;
 
   try {
-    // Send to Admin 1
+    // Admin 1 ga yuborish
     if (ADMIN_1_ID) {
       if (ctx.message.text) {
-        await bot.telegram.sendMessage(ADMIN_1_ID, captionHeader + userText, { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(
+          ADMIN_1_ID, 
+          captionHeader + escapeHTML(ctx.message.text), 
+          { parse_mode: 'HTML' }
+        );
       } else {
+        const userCaption = ctx.message.caption ? escapeHTML(ctx.message.caption) : '';
         await ctx.copyMessage(ADMIN_1_ID, {
           caption: captionHeader + userCaption,
           parse_mode: 'HTML'
@@ -102,11 +99,16 @@ bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], asyn
       }
     }
 
-    // Send to Admin 2 (Observer)
+    // Admin 2 (Kuzatuvchi) ga yuborish
     if (ADMIN_2_ID) {
       if (ctx.message.text) {
-        await bot.telegram.sendMessage(ADMIN_2_ID, observerHeader + userText, { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(
+          ADMIN_2_ID, 
+          observerHeader + escapeHTML(ctx.message.text), 
+          { parse_mode: 'HTML' }
+        );
       } else {
+        const userCaption = ctx.message.caption ? escapeHTML(ctx.message.caption) : '';
         await ctx.copyMessage(ADMIN_2_ID, {
           caption: observerHeader + userCaption,
           parse_mode: 'HTML'
@@ -114,7 +116,7 @@ bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], asyn
       }
     }
 
-    // Acknowledge to User
+    // Foydalanuvchiga tasdiq xabari
     await ctx.reply("✅ Xabaringiz adminga yetkazildi! Tez orada javob beramiz.");
   } catch (error) {
     console.error("Forwarding error:", error);
