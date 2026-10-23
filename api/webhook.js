@@ -75,23 +75,27 @@ bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], asyn
 
   try {
     // Send to Admin 1
-    if (ctx.message.text) {
-      await bot.telegram.sendMessage(ADMIN_1_ID, captionHeader + ctx.message.text, { parse_mode: 'Markdown' });
-    } else {
-      await ctx.copyMessage(ADMIN_1_ID, {
-        caption: captionHeader + (ctx.message.caption || ''),
-        parse_mode: 'Markdown'
-      });
+    if (ADMIN_1_ID) {
+      if (ctx.message.text) {
+        await bot.telegram.sendMessage(ADMIN_1_ID, captionHeader + ctx.message.text, { parse_mode: 'Markdown' });
+      } else {
+        await ctx.copyMessage(ADMIN_1_ID, {
+          caption: captionHeader + (ctx.message.caption || ''),
+          parse_mode: 'Markdown'
+        });
+      }
     }
 
     // Send to Admin 2 (Observer)
-    if (ctx.message.text) {
-      await bot.telegram.sendMessage(ADMIN_2_ID, observerHeader + ctx.message.text, { parse_mode: 'Markdown' });
-    } else {
-      await ctx.copyMessage(ADMIN_2_ID, {
-        caption: observerHeader + (ctx.message.caption || ''),
-        parse_mode: 'Markdown'
-      });
+    if (ADMIN_2_ID) {
+      if (ctx.message.text) {
+        await bot.telegram.sendMessage(ADMIN_2_ID, observerHeader + ctx.message.text, { parse_mode: 'Markdown' });
+      } else {
+        await ctx.copyMessage(ADMIN_2_ID, {
+          caption: observerHeader + (ctx.message.caption || ''),
+          parse_mode: 'Markdown'
+        });
+      }
     }
 
     // Acknowledge to User
@@ -101,15 +105,17 @@ bot.on(['text', 'photo', 'video', 'voice', 'audio', 'document', 'sticker'], asyn
   }
 });
 
+// Vercel Serverless Export
 module.exports = async (req, res) => {
   try {
     if (req.method === 'POST') {
-      await bot.handleUpdate(req.body, res);
+      await bot.handleUpdate(req.body);
+      res.status(200).json({ status: 'ok' });
     } else {
       res.status(200).send('Telegram Feedback Bot is active!');
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+    console.error("Webhook processing error:", err);
+    res.status(200).json({ error: err.message }); // Always reply HTTP 200 so Telegram won't get stuck
   }
 };
